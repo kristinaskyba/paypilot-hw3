@@ -132,39 +132,35 @@ Reference: spread 0.9% (`tariffs.md#s2`) and daily limit EUR 20,000 (`limits.md#
 
 ## 6. Decision and limits
 
-*Homework step 6. In the lesson: "The cost of a fix: what a prompt does not cure", "What localization does not catch".*
-
-Same structure as the table in "The cost of a fix", but filled in for a real system, not for the stand.
-
 | Point | How it is fixed | What it costs in a real system | What breaks instead | Will a prompt help? |
 |---|---|---|---|---|
-| Indexing |  |  |  |  |
-| Retrieval |  |  |  |  |
-| Generation |  |  |  |  |
+| Indexing | Re-chunk by section and keep tables whole (no cut inside a row), keep the section heading in every chunk, then re-index | Re-embedding the whole corpus plus a full regression run of the golden set, and engineer time to check chunk boundaries | All chunk ids change, so every `reference`/`corpus_source` must be re-pinned; bigger chunks bring more tokens and more noise per hit | No. The model never sees ",000" from `#b4`; a prompt can only make it say "cut off" honestly, as Haiku 5.5 already does |
+| Retrieval | `top_k` 5 instead of 4 (later: a reranker or hybrid search) | About +210 input tokens (+3.5%) on every turn that searches, multiplied by all traffic; a reranker would add a call and latency | Precision falls to 0.4: 3 of 5 chunks are noise, more text for the model to pick the wrong row from | Partly. "Search again with other words" sometimes helps (C-14 needed 3 searches at `top_k` 5), but at `top_k` 1 two searches returned the same `disputes.md#b1` |
+| Generation | Fix the prompt (remove the D25 rounding rule and the D05 stale fee list) and add a deterministic check: the stated total must equal `tool.quote_fx.final_amount` | Prompt review plus a regression run with repeats (×5), because the defect fires only 4 of 5 times | Any prompt change can shift other behaviour, so it needs the same regression run every time | Yes. Both D25 and D05 are prompt-caused, so this is the only point a prompt fixes; the deterministic check is the backstop |
 
-**Cost of one re-indexing in a real system:** corpus size ..., time ..., money .... Assumptions: ...
+**Cost of one re-indexing in a real system:** corpus size ≈ 5M tokens (≈ 1,000× the stand's ~5,000-token corpus of 21 files, e.g. ~2,000 documents of ~2,500 tokens), time ≈ 1 hour for embedding and index swap plus 1–2 engineer days to review chunk boundaries and re-pin references, money ≈ $0.10 for embeddings plus ≈ $0.15 for one regression run of a 200-case set. Assumptions: embedding price ~$0.02 / 1M tokens; ~6,000 input tokens per eval case (measured in section 5); claude-haiku-5-5 at $0.10 / 1M input (stand `pricing.py`). The stand itself uses word matching without embeddings, so re-indexing there is free; the real cost is people's time and re-pinning broken references, not compute.
 
-**What a prompt does not cure:** ...
+**What a prompt does not cure:** a number cut in half by chunking (Exercise 1, C-13), a fact that never enters the top_k (Exercise 2, C-14 at `top_k` 1), and a top_k forced by the profile (D17). A prompt cannot make the model read a chunk that search did not return.
 
-**Residual risk.** At least one class of failures that passes recall, precision and faithfulness at the same time. One such class is covered in "What localization does not catch" — pick a different one. Same line format as in L03:
+**Residual risk.**
 
 ```
-what is not covered              ...
-what happens if it breaks        ...
-why we live with it now          ...
-defer / accept                   ...
+what is not covered              a faithful answer that omits a mandatory action: e.g. a dispute blocked by a customer-level restriction, where the agent correctly explains why it is blocked but does not escalate to a human agent (disputes.md, "Escalation on blocked disputes"); recall 1.0 and precision 1.0 because the rule arrived, faithfulness 1.0 because every stated claim is in the context, so the missing step is invisible to all three metrics
+what happens if it breaks        the customer is left with a blocked dispute and no next step; the case is never handled within the reason-code window, a process breach and a C-17-type complaint ("no next step")
+why we live with it now          the three metrics score only what the answer says, not what it should have done; the escalation is visible only in the trace as a missing tool.escalate_to_human call
+defer / accept                   defer: add cases that assert the escalate_to_human call in the trace (a tool-level check, not a retrieval metric) to the L13 gate
 ```
 
-**Reference source.** Recall is counted against the reference you defined. An incomplete reference gives a green recall on an incomplete retrieval context. Name where you took the reference for this report and the `reference` for the cases.
+**Reference source.** The reference for this report and the `reference` of the retrieval cases come from the Verta documentation in the stand, `app/rag/corpus/*.md` (`tariffs.md`, `limits.md`, `disputes.md`), read directly from the files and never from agent answers. Limit: the corpus itself is the reference. If a document is outdated, recall stays green while the answer is wrong for the customer.
 
 ---
 
 ## Final line
 
 ```
-what we traded                         ...
-what we are not doing                  ...
-under which conditions it changes      ...
+what we traded                         +~3.5% input tokens per search turn and precision 0.4, for complete two-fact answers at top_k 5
+what we are not doing                  not fixing indexing with top_k or the prompt (re-chunking is a separate change), and not switching to a more expensive model: none of the six failures was the model's fault
+under which conditions it changes      questions that routinely need 3+ chunks, a token or latency budget being hit, or re-chunking by section (then re-measure top_k 3–5)
 ```
 
 ---
