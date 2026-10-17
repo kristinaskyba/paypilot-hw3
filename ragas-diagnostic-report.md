@@ -30,7 +30,7 @@ corpus         Verta documentation
 indexes        kb_clean (chunks by section) · kb_broken (160-character chunks)
 profiles       clean · lesson-04
 model          claude-haiku-5-5, provider anthropic (gen_ai.request.model in every trace)
-set            golden.jsonl, ... cases, of which ... retrieval layer · set_hash ...
+set            golden.jsonl, 46 cases, of which 12 retrieval layer · set_hash 75ef2194fec3
 run date       2026-10-17
 ```
 

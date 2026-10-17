@@ -27,8 +27,8 @@ Put `golden.jsonl` into `~/paypilot/l03/sets/` and run:
 ## Runs
 | Run | Profile | Result | Report |
 | --- | --- | --- | --- |
-| Baseline | `clean` | <N/M> | `reports/…` |
-| Lesson profile | `lesson-04` | <N/M> | `reports/…` |
+| Baseline | `clean` | 40/41 (retrieval 11/12) | `reports/golden-clean-20261017T151008.json` |
+| Lesson profile | `lesson-04` | 32/41 (retrieval 3/12) | `reports/golden-lesson-04-20261017T151421.json` |
 
 Prediction before the `lesson-04` run: on `lesson-04` (kb_broken, top_k forced to 1, D05) these retrieval cases will fail:
 - RET-H01, RET-H03 — chunking: "EUR 5,000" is split between `tariffs.md#b3` and `#b4`;
@@ -40,5 +40,12 @@ Prediction before the `lesson-04` run: on `lesson-04` (kb_broken, top_k forced t
 Expected to pass: RET-H06, RET-H07 (the limits rows are whole in `limits.md#b3`), RET-H11, RET-H12 (a single prose sentence in one chunk); uncertain, because with top_k 1 the first chunk must be exactly the right one.
 Also on `clean`: RET-H04 may fail even on the baseline — at top_k 4 the English search query loses the spread table (0 of 3 in report section 5).
 
-Commit with the prediction: `<hash>`
-What failed: <id>. Difference from the prediction: <explanation or "none">
+Commit with the prediction: `abc2dbb`
+What failed on `lesson-04`: RET-H01, RET-H02, RET-H03, RET-H05, RET-H06, RET-H07, RET-H08, RET-H11, RET-H12. On `clean`: RET-H04.
+Difference from the prediction (6 of 12):
+- RET-H04 passed: top_k 1 returned `tariffs.md#b3`, which holds the Tier 2 spread; the daily limit was missing, but the case checks only "0.9%" — a one-needle case cannot see the missing second fact.
+- RET-H09 passed: the agent's second search used the code name `fraud_card_not_present` and `disputes.md#b2` ranked first.
+- RET-H10 passed: D05 skipped the search, but the stale fee list in the prompt has the card fee right (1.2%); only the SWIFT fee is wrong there.
+- RET-H06 failed: top_k 1 returned `tariffs.md#b3` instead of `limits.md#b3`.
+- RET-H07 failed: top_k 1 returned `glossary.md#b5`, then the limits intro `limits.md#b1`; the table chunk `#b3` never ranked first.
+- RET-H11, RET-H12 failed: the answer sentence is cut between chunks — the start with the query words is in `disputes-process.md#b4` / `fx-operations.md#b3`, the answer phrase in `#b5` / `#b4`. Search returns the chunk with the query words, not the one with the answer. By the trace these are chunking failures, not top_k as labelled in `golden.jsonl`.
