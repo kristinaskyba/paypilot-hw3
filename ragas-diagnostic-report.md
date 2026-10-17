@@ -1,15 +1,5 @@
 # RAGAS Diagnostic Report — PayPilot
 
-*Supplementary material for Lesson 4 "RAG: three failure points". Homework 3.*
-
-Length: up to two pages — six sections and a final line. Sections 1–6 match homework steps 1–6. Retrieval cases (step 7) are added to `golden.jsonl`, so there is no separate section for them.
-
-Three things make this report a decision document:
-
-- every claim about a failure point is backed by the **retrieval context**, not by the answer text;
-- every fix has a named **cost** and what it breaks;
-- the final line answers "what we traded · what we are not doing · under which conditions the decision changes".
-
 **How the metrics are counted** (same as the table "Three metrics on the lab examples"):
 
 | Metric | What you count | Denominator |
@@ -162,18 +152,3 @@ what we traded                         +~3.5% input tokens per search turn and p
 what we are not doing                  not fixing indexing with top_k or the prompt (re-chunking is a separate change), and not switching to a more expensive model: none of the six failures was the model's fault
 under which conditions it changes      questions that routinely need 3+ chunks, a token or latency budget being hit, or re-chunking by section (then re-measure top_k 3–5)
 ```
-
----
-
-## Pre-submission checklist
-
-- [ ] Section 1 has every line filled in, including the number of retrieval cases and `set_hash`.
-- [ ] In section 2 every row has evidence from the trace, not a quote of the answer; C-13 and C-14 are classified or marked "not reproducible".
-- [ ] In section 3 only the index changed between the runs, and this is stated explicitly.
-- [ ] Every metric shows the calculation "n of m".
-- [ ] Section 4 has the result of five D25 runs and `final_amount` from the trace.
-- [ ] Section 5 has three `top_k` values with tokens and the `kb_broken` check; the cost of the chosen value is named.
-- [ ] Section 6 has all three table rows filled in, a failure class that passes all three metrics, and the reference source.
-- [ ] The final line has all three items filled in.
-- [ ] `golden.jsonl` has at least 10 cases with `layer: retrieval` and `oracle: corpus`, none with an empty `reference`.
-- [ ] `docker compose run --rm eval --set golden --profile clean` on a clean clone of the kit runs to the end and writes a report.
